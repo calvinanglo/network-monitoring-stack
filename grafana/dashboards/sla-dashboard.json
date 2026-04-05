@@ -1,176 +1,277 @@
 {
-    "__inputs": [
-          {
-                  "name": "DS_PROMETHEUS",
-                  "label": "Prometheus",
-                  "description": "",
-                  "type": "datasource",
-                  "pluginId": "prometheus",
-                  "pluginName": "Prometheus"
-          }
-    ],
-    "__requires": [
-          {
-                  "type": "grafana",
-                  "id": "grafana",
-                  "name": "Grafana",
-                  "version": "10.1.0"
-          },
-          {
-                  "type": "datasource",
-                  "id": "prometheus",
-                  "name": "Prometheus",
-                  "version": "1.0.0"
-          }
-    ],
-    "annotations": {
-          "list": []
-    },
-    "description": "SLA monitoring dashboard - device availability, interface utilization, MTTD/MTTR",
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 1,
-    "id": null,
-    "links": [],
-    "panels": [
-          {
-                  "collapsed": false,
-                  "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
-                  "id": 1,
-                  "title": "Device Availability (30-day SLA)",
-                  "type": "row"
-          },
-          {
-                  "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                  "fieldConfig": {
-                            "defaults": {
-                                        "color": {"mode": "thresholds"},
-                                        "mappings": [
-                                                      {"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}}, "type": "value"},
-                                                      {"options": {"1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}
-                                        ],
-                                        "thresholds": {
-                                                      "mode": "absolute",
-                                                      "steps": [
-                                                                      {"color": "red", "value": null},
-                                                                      {"color": "green", "value": 1}
-                                                      ]
-                                        },
-                                        "unit": "short"
-                            }
-                  },
-                  "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
-                  "id": 2,
-                  "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
-                  "targets": [
-                            {
-                                        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                                        "expr": "probe_success{job=\"blackbox-icmp\", instance=\"192.168.10.1\"}",
-                                        "legendFormat": "core-switch-01",
-                                        "refId": "A"
-                            }
-                  ],
-                  "title": "core-switch-01",
-                  "type": "stat"
-          },
-          {
-                  "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                  "fieldConfig": {
-                            "defaults": {
-                                        "color": {"mode": "thresholds"},
-                                        "thresholds": {
-                                                      "mode": "absolute",
-                                                      "steps": [
-                                                                      {"color": "red", "value": null},
-                                                                      {"color": "yellow", "value": 99},
-                                                                      {"color": "green", "value": 99.9}
-                                                      ]
-                                        },
-                                        "unit": "percent",
-                                        "decimals": 3
-                            }
-                  },
-                  "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
-                  "id": 3,
-                  "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}},
-                  "targets": [
-                            {
-                                        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                                        "expr": "avg_over_time(probe_success{job=\"blackbox-icmp\", instance=\"192.168.10.1\"}[30d]) * 100",
-                                        "legendFormat": "30d uptime %",
-                                        "refId": "A"
-                            }
-                  ],
-                  "title": "core-switch-01 30d availability",
-                  "type": "stat"
-          },
-          {
-                  "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                  "fieldConfig": {
-                            "defaults": {
-                                        "color": {"mode": "palette-classic"},
-                                        "custom": {
-                                                      "lineWidth": 2,
-                                                      "fillOpacity": 10
-                                        },
-                                        "thresholds": {
-                                                      "mode": "absolute",
-                                                      "steps": [
-                                                                      {"color": "green", "value": null},
-                                                                      {"color": "yellow", "value": 70},
-                                                                      {"color": "red", "value": 90}
-                                                      ]
-                                        },
-                                        "unit": "percent"
-                            }
-                  },
-                  "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
-                  "id": 4,
-                  "options": {
-                            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
-                            "tooltip": {"mode": "multi"}
-                  },
-                  "targets": [
-                            {
-                                        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                                        "expr": "(rate(ifHCInOctets{job=\"snmp-cisco\"}[5m]) + rate(ifHCOutOctets{job=\"snmp-cisco\"}[5m])) * 8 / ifHighSpeed{job=\"snmp-cisco\"} / 1000000",
-                "legendFormat": "{{instance}} {{ifDescr}}",
-                "refId": "A"
-      }
-],
-        "title": "Interface Utilization % (Cisco)",
-        "type": "timeseries"
-},
+  "__inputs": [
     {
-            "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-            "fieldConfig": {
-                      "defaults": {
-                                  "color": {"mode": "palette-classic"},
-                                  "custom": {"lineWidth": 2, "fillOpacity": 10},
-                                  "unit": "percent"
-                      }
-            },
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
-            "id": 5,
-            "targets": [
-                      {
-                                  "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-                                  "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-                                  "legendFormat": "{{instance}} CPU",
-                                  "refId": "A"
-                      }
-            ],
-            "title": "Linux Host CPU %",
-            "type": "timeseries"
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
     }
-],
-  "refresh": "30s",
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "gauge",
+      "name": "Gauge",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Network device uptime and SLA tracking - 30-day rolling window. Maps to ITIL SLA management targets defined in docs/itil-sla-targets.md",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "title": "30-Day Uptime % - All Devices",
+      "type": "gauge",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "avg_over_time(probe_success{job=\"blackbox-icmp\"}[30d]) * 100",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "title": "ICMP Probe Success - 24h",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "probe_success{job=\"blackbox-icmp\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "DOWN" }, "1": { "color": "green", "index": 1, "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Device Status",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "probe_success{job=\"blackbox-icmp\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": ["mean", "min"], "displayMode": "table", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "title": "30-Day Rolling Uptime % per Device",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "avg_over_time(probe_success{job=\"blackbox-icmp\"}[30d]) * 100",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
   "schemaVersion": 38,
-  "tags": ["network", "sla", "monitoring"],
-  "time": {"from": "now-24h", "to": "now"},
+  "tags": ["network", "sla", "availability", "itil"],
+  "time": { "from": "now-24h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
   "title": "Network SLA Dashboard",
-  "uid": "network-sla-001",
+  "uid": "network-sla-v1",
   "version": 1
 }
