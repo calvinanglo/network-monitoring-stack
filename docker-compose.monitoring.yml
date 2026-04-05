@@ -5,106 +5,101 @@ version: "3.8"
 
 networks:
   monitoring:
-      driver: bridge
+    driver: bridge
 
-      volumes:
-        prometheus_data:
-          grafana_data:
+volumes:
+  prometheus_data:
+  grafana_data:
 
-          services:
+services:
 
-            prometheus:
-                image: prom/prometheus:v2.47.0
-                    container_name: prometheus
-                        restart: unless-stopped
-                            networks:
-                                  - monitoring
-                                      ports:
-                                            - "9090:9090"
-                                                volumes:
-                                                      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-                                                            - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
-                                                                  - prometheus_data:/prometheus
-                                                                      command:
-                                                                            - '--config.file=/etc/prometheus/prometheus.yml'
-                                                                                  - '--storage.tsdb.path=/prometheus'
-                                                                                        - '--storage.tsdb.retention.time=30d'
-                                                                                              - '--web.enable-lifecycle'
-                                                                                                    - '--web.enable-admin-api'
-                                                                                                    
-                                                                                                      grafana:
-                                                                                                          image: grafana/grafana:10.1.0
-                                                                                                              container_name: grafana
-                                                                                                                  restart: unless-stopped
-                                                                                                                      networks:
-                                                                                                                            - monitoring
-                                                                                                                                ports:
-                                                                                                                                      - "3000:3000"
-                                                                                                                                          volumes:
-                                                                                                                                                - grafana_data:/var/lib/grafana
-                                                                                                                                                      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-                                                                                                                                                          environment:
-                                                                                                                                                                - GF_SECURITY_ADMIN_USER=admin
-                                                                                                                                                                      - GF_SECURITY_ADMIN_PASSWORD=admin
-                                                                                                                                                                            - GF_USERS_ALLOW_SIGN_UP=false
-                                                                                                                                                                                  - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/sla-dashboard.json
-                                                                                                                                                                                      depends_on:
-                                                                                                                                                                                            - prometheus
-                                                                                                                                                                                            
-                                                                                                                                                                                              snmp-exporter:
-                                                                                                                                                                                                  image: prom/snmp-exporter:v0.24.1
-                                                                                                                                                                                                      container_name: snmp-exporter
-                                                                                                                                                                                                          restart: unless-stopped
-                                                                                                                                                                                                              networks:
-                                                                                                                                                                                                                    - monitoring
-                                                                                                                                                                                                                        ports:
-                                                                                                                                                                                                                              - "9116:9116"
-                                                                                                                                                                                                                                  volumes:
-                                                                                                                                                                                                                                        - ./prometheus/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
-                                                                                                                                                                                                                                            # snmp.yml generated with snmp-generator using Cisco IF-MIB and CISCO-MEMORY-POOL-MIB
-                                                                                                                                                                                                                                                # see cisco/snmp-config.txt for device-side SNMPv3 configuration
-                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                  node-exporter:
-                                                                                                                                                                                                                                                      image: prom/node-exporter:v1.6.1
-                                                                                                                                                                                                                                                          container_name: node-exporter
-                                                                                                                                                                                                                                                              restart: unless-stopped
-                                                                                                                                                                                                                                                                  networks:
-                                                                                                                                                                                                                                                                        - monitoring
-                                                                                                                                                                                                                                                                            ports:
-                                                                                                                                                                                                                                                                                  - "9100:9100"
-                                                                                                                                                                                                                                                                                      volumes:
-                                                                                                                                                                                                                                                                                            - /proc:/host/proc:ro
-                                                                                                                                                                                                                                                                                                  - /sys:/host/sys:ro
-                                                                                                                                                                                                                                                                                                        - /:/rootfs:ro
-                                                                                                                                                                                                                                                                                                            command:
-                                                                                                                                                                                                                                                                                                                  - '--path.procfs=/host/proc'
-                                                                                                                                                                                                                                                                                                                        - '--path.sysfs=/host/sys'
-                                                                                                                                                                                                                                                                                                                              - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-                                                                                                                                                                                                                                                                                                                                    - '--collector.systemd'
-                                                                                                                                                                                                                                                                                                                                          - '--collector.processes'
-                                                                                                                                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                                                                                                                            blackbox-exporter:
-                                                                                                                                                                                                                                                                                                                                                image: prom/blackbox-exporter:v0.24.0
-                                                                                                                                                                                                                                                                                                                                                    container_name: blackbox-exporter
-                                                                                                                                                                                                                                                                                                                                                        restart: unless-stopped
-                                                                                                                                                                                                                                                                                                                                                            networks:
-                                                                                                                                                                                                                                                                                                                                                                  - monitoring
-                                                                                                                                                                                                                                                                                                                                                                      ports:
-                                                                                                                                                                                                                                                                                                                                                                            - "9115:9115"
-                                                                                                                                                                                                                                                                                                                                                                                # probes ICMP ping to all monitored devices every 30s
-                                                                                                                                                                                                                                                                                                                                                                                    # used for availability SLA calculation in grafana
-                                                                                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                                                                                                                      alertmanager:
-                                                                                                                                                                                                                                                                                                                                                                                          image: prom/alertmanager:v0.26.0
-                                                                                                                                                                                                                                                                                                                                                                                              container_name: alertmanager
-                                                                                                                                                                                                                                                                                                                                                                                                  restart: unless-stopped
-                                                                                                                                                                                                                                                                                                                                                                                                      networks:
-                                                                                                                                                                                                                                                                                                                                                                                                            - monitoring
-                                                                                                                                                                                                                                                                                                                                                                                                                ports:
-                                                                                                                                                                                                                                                                                                                                                                                                                      - "9093:9093"
-                                                                                                                                                                                                                                                                                                                                                                                                                          volumes:
-                                                                                                                                                                                                                                                                                                                                                                                                                                - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-                                                                                                                                                                                                                                                                                                                                                                                                                                    command:
-                                                                                                                                                                                                                                                                                                                                                                                                                                          - '--config.file=/etc/alertmanager/alertmanager.yml'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                - '--storage.path=/alertmanager'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      - '--cluster.listen-address='
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+
+  grafana:
+    image: grafana/grafana:10.1.5
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=changeme
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: blackbox-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+
+  snmp-exporter:
+    image: prom/snmp-exporter:v0.24.1
+    container_name: snmp-exporter
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "9116:9116"
+    volumes:
+      - ./snmp/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
