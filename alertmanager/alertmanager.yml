@@ -1,114 +1,77 @@
 global:
   smtp_smarthost: 'smtp.gmail.com:587'
-    smtp_from: 'monitoring@yourdomain.com'
-      smtp_auth_username: 'monitoring@yourdomain.com'
-        smtp_auth_password: 'your-app-password-here'
-          smtp_require_tls: true
-            resolve_timeout: 5m
+  smtp_from: 'monitoring@yourdomain.com'
+  smtp_auth_username: 'monitoring@yourdomain.com'
+  smtp_auth_password: 'your-app-password-here'
+  smtp_require_tls: true
+  resolve_timeout: 5m
 
-            # routing tree - critical alerts go to pagerduty/slack immediately
-            # warnings get grouped and sent via email with a 10 min delay
-            route:
-              group_by: ['alertname', 'instance', 'severity']
-                group_wait: 30s
-                  group_interval: 5m
-                    repeat_interval: 4h
-                      receiver: email-notifications
+# routing tree - critical alerts go to pagerduty/slack immediately
+# warnings get grouped and sent via email with a 10 min delay
+route:
+  group_by: ['alertname', 'instance', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: email-notifications
 
-                        routes:
-                            # critical severity - route to slack and email immediately, no grouping delay
-                                - match:
-                                        severity: critical
-                                              receiver: critical-alerts
-                                                    group_wait: 0s
-                                                          repeat_interval: 1h
-                                                                continue: false
+  routes:
+    - match:
+        severity: critical
+      receiver: critical-alerts
+      group_wait: 0s
+      repeat_interval: 1h
 
-                                                                    # sla-related alerts - separate receiver so they don't get lost in noise
-                                                                        - match:
-                                                                                category: sla
-                                                                                      receiver: sla-alerts
-                                                                                            group_wait: 0s
-                                                                                                  repeat_interval: 6h
+    - match:
+        severity: warning
+      receiver: email-notifications
+      group_wait: 10m
+      repeat_interval: 6h
 
-                                                                                                      # capacity warnings - lower urgency, longer repeat
-                                                                                                          - match:
-                                                                                                                  category: capacity
-                                                                                                                        receiver: capacity-warnings
-                                                                                                                              group_wait: 5m
-                                                                                                                                    repeat_interval: 12h
-                                                                                                                                    
-                                                                                                                                    inhibit_rules:
-                                                                                                                                      # if a device is unreachable, suppress interface alerts for that same device
-                                                                                                                                        # otherwise you get flooded with interface-down alerts when the real issue is the device itself
-                                                                                                                                          - source_match:
-                                                                                                                                                alertname: DeviceUnreachable
-                                                                                                                                                    target_match_re:
-                                                                                                                                                          alertname: 'Interface.*'
-                                                                                                                                                              equal: ['instance']
-                                                                                                                                                              
-                                                                                                                                                                # if a host has critical cpu, suppress the warning version
-                                                                                                                                                                  - source_match:
-                                                                                                                                                                        alertname: HostCPUCritical
-                                                                                                                                                                            target_match:
-                                                                                                                                                                                  alertname: HostCPUHigh
-                                                                                                                                                                                      equal: ['instance']
-                                                                                                                                                                                      
-                                                                                                                                                                                      receivers:
-                                                                                                                                                                                      
-                                                                                                                                                                                        - name: email-notifications
-                                                                                                                                                                                            email_configs:
-                                                                                                                                                                                                  - to: 'network-team@yourdomain.com'
-                                                                                                                                                                                                          subject: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} - {{ .GroupLabels.instance }}'
-                                                                                                                                                                                                                  body: |
-                                                                                                                                                                                                                            {{ range .Alerts }}
-                                                                                                                                                                                                                                      Alert: {{ .Annotations.summary }}
-                                                                                                                                                                                                                                                Details: {{ .Annotations.description }}
-                                                                                                                                                                                                                                                          Severity: {{ .Labels.severity }}
-                                                                                                                                                                                                                                                                    Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
-                                                                                                                                                                                                                                                                              {{ end }}
-                                                                                                                                                                                                                                                                                      send_resolved: true
-                                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                                        - name: critical-alerts
-                                                                                                                                                                                                                                                                                            slack_configs:
-                                                                                                                                                                                                                                                                                                  - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-                                                                                                                                                                                                                                                                                                          channel: '#network-alerts'
-                                                                                                                                                                                                                                                                                                                  title: 'CRITICAL: {{ .GroupLabels.alertname }}'
-                                                                                                                                                                                                                                                                                                                          text: |
-                                                                                                                                                                                                                                                                                                                                    {{ range .Alerts }}
-                                                                                                                                                                                                                                                                                                                                              *{{ .Annotations.summary }}*
-                                                                                                                                                                                                                                                                                                                                                        {{ .Annotations.description }}
-                                                                                                                                                                                                                                                                                                                                                                  Instance: {{ .Labels.instance }}
-                                                                                                                                                                                                                                                                                                                                                                            {{ end }}
-                                                                                                                                                                                                                                                                                                                                                                                    send_resolved: true
-                                                                                                                                                                                                                                                                                                                                                                                            color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
-                                                                                                                                                                                                                                                                                                                                                                                                email_configs:
-                                                                                                                                                                                                                                                                                                                                                                                                      - to: 'network-team@yourdomain.com, oncall@yourdomain.com'
-                                                                                                                                                                                                                                                                                                                                                                                                              subject: '[CRITICAL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.instance }}'
-                                                                                                                                                                                                                                                                                                                                                                                                                      send_resolved: true
-                                                                                                                                                                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                                                                                                                                                                        - name: sla-alerts
-                                                                                                                                                                                                                                                                                                                                                                                                                            email_configs:
-                                                                                                                                                                                                                                                                                                                                                                                                                                  - to: 'network-team@yourdomain.com, manager@yourdomain.com'
-                                                                                                                                                                                                                                                                                                                                                                                                                                          subject: '[SLA ALERT] {{ .GroupLabels.instance }} availability below target'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                  body: |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ range .Alerts }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SLA Alert: {{ .Annotations.summary }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {{ .Annotations.description }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          This alert indicates the device availability has dropped below the 99.9% monthly target.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Review the Grafana SLA dashboard at http://monitoring-server:3000 for full details.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Update the ITIL incident record with the downtime duration.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {{ end }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                send_resolved: true
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  - name: capacity-warnings
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      email_configs:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            - to: 'network-team@yourdomain.com'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    subject: '[CAPACITY] {{ .GroupLabels.alertname }}'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            body: |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      {{ range .Alerts }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Capacity Warning: {{ .Annotations.summary }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          {{ .Annotations.description }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {{ end }}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            send_resolved: true
+    - match:
+        category: sla
+      receiver: critical-alerts
+      group_wait: 0s
+
+receivers:
+  - name: email-notifications
+    email_configs:
+      - to: 'admin@yourdomain.com'
+        send_resolved: true
+        headers:
+          Subject: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} - {{ .GroupLabels.instance }}'
+        html: |
+          <h2>Alert: {{ .GroupLabels.alertname }}</h2>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+
+  - name: critical-alerts
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-critical'
+        send_resolved: true
+        title: '{{ if eq .Status "firing" }}:red_circle:{{ else }}:large_green_circle:{{ end }} [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+    email_configs:
+      - to: 'admin@yourdomain.com'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - Action Required'
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['instance', 'alertname']
