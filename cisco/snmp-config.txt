@@ -1,0 +1,62 @@
+! SNMPv3 configuration for Cisco IOS devices
+! Applied to: core-switch-01, core-switch-02, dist-switch-01, edge-router-01
+! SNMPv3 uses authPriv mode (SHA auth + AES encryption) - no plaintext community strings
+!
+! This replaces any SNMPv2c config. If you have existing "snmp-server community" lines,
+! remove them first or they'll still be accessible.
+
+! Step 1: create the SNMPv3 user with auth and priv
+! SHA for authentication, AES 128 for privacy/encryption
+! replace AUTHPASS and PRIVPASS with actual values (store in vault, not here)
+snmp-server group MONITORING v3 priv
+snmp-server user prometheus MONITORING v3 auth sha AUTHPASS priv aes 128 PRIVPASS
+
+! Step 2: restrict SNMP access to the monitoring server only
+! 192.168.30.10 is the monitoring server running this stack
+ip access-list standard SNMP-ALLOW
+ permit 192.168.30.10
+ deny   any log
+
+snmp-server group MONITORING v3 priv access SNMP-ALLOW
+
+! Step 3: configure what gets exposed via SNMP
+! IF-MIB covers interface stats (ifHCInOctets, ifHCOutOctets, ifOperStatus, etc.)
+! CISCO-PROCESS-MIB covers CPU and memory
+! entity MIB covers hardware info (useful for asset tracking)
+snmp-server view MONITORING-VIEW iso included
+snmp-server group MONITORING v3 priv read MONITORING-VIEW
+
+! Step 4: set location and contact (shows up in prometheus labels)
+snmp-server location "DataCenter-A Rack-3"
+snmp-server contact "network-team@yourdomain.com"
+
+! Step 5: enable SNMP trap sending to the monitoring server
+! prometheus doesn't natively receive traps but this is useful for alertmanager integration
+snmp-server host 192.168.30.10 version 3 priv prometheus
+snmp-server enable traps snmp linkdown linkup
+snmp-server enable traps config
+snmp-server enable traps cpu threshold
+snmp-server enable traps envmon
+
+! Optional: lower the CPU threshold for trap generation
+! fires a trap when 5-second CPU average hits 80%
+snmp-server cpu threshold type total rising 80 interval 5
+
+!
+! Verification commands:
+! show snmp user
+! show snmp group
+! show snmp view
+! show snmp host
+!
+! From the monitoring server, test with:
+! snmpwalk -v3 -l authPriv -u prometheus -a SHA -A AUTHPASS -x AES -X PRIVPASS 192.168.10.1 IF-MIB::ifDescr
+!
+! Key OIDs used in prometheus scraping:
+! IF-MIB::ifHCInOctets    - inbound bytes (64-bit counter, no rollover issues on 10G)
+! IF-MIB::ifHCOutOctets   - outbound bytes
+! IF-MIB::ifOperStatus    - interface up/down (1=up, 2=down)
+! IF-MIB::ifHighSpeed     - interface speed in Mbps
+! IF-MIB::ifDescr         - interface name (GigabitEthernet0/1, etc.)
+! CISCO-PROCESS-MIB::cpmCPUTotal5min   - 5 min CPU average
+! CISCO-MEMORY-POOL-MIB::ciscoMemoryPoolUsed - memory pool usage
