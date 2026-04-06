@@ -59,7 +59,7 @@ These feed into quarterly infrastructure planning discussions. If the monitoring
 
 Incident: INC-0341
 Date: 2024-11-14
-Affected device: core-switch-01 (192.168.10.1)
+Affected device: SW-DIST (10.10.99.1)
 Alert fired: 14:32:17 UTC (DeviceUnreachable)
 Service restored: 14:47:45 UTC
 Outage duration: 15 minutes 28 seconds

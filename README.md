@@ -28,7 +28,6 @@ network-monitoring-stack/
   grafana/
     dashboards/
       sla-dashboard.json          # main SLA dashboard
-      network-overview.json       # per-device interface stats
   cisco/
     snmp-config.txt               # SNMPv3 config for Cisco IOS
   docs/

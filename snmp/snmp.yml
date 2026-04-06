@@ -1,0 +1,13 @@
+# SNMPv3 configuration for SNMP Exporter
+# Matches the wazuh-monitor user configured on all Cisco devices
+# See: enterprise-network-segmentation/configs/ for device-side config
+auths:
+  wazuh_v3:
+    community: ""
+    security_level: authPriv
+    username: wazuh-monitor
+    password: "Auth@2026"
+    auth_protocol: SHA
+    priv_protocol: AES
+    priv_password: "Priv@2026"
+    context_name: ""

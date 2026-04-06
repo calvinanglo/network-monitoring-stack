@@ -63,7 +63,7 @@ scrape_configs:
       role: siem
 
   # snmp exporter - network device metrics via snmp
-  # requires snmp community string configured on cisco switches
+  # requires SNMPv3 user configured on cisco switches (see enterprise-network-segmentation configs)
   - job_name: snmp-network
     metrics_path: /snmp
     params:

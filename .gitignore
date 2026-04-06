@@ -1,0 +1,7 @@
+.env
+grafana_data/
+prometheus_data/
+*.log
+*.swp
+.DS_Store
+Thumbs.db
