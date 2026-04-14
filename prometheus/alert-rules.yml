@@ -66,7 +66,7 @@ groups:
 
       # interface error rate spiking - usually a duplex mismatch or bad cable
       - alert: HighInterfaceErrors
-        expr: rate(ifInErrors[5m]) + rate(ifOutErrors[5m]) > 10
+        expr: rate(ifInErrors{job="snmp-network"}[5m]) + rate(ifOutErrors{job="snmp-network"}[5m]) > 10
         for: 5m
         labels:
           severity: warning

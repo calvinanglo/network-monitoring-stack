@@ -23,14 +23,18 @@ scrape_configs:
   - job_name: node-exporter
     static_configs:
       - targets:
-          - 10.10.20.10:9100
-          - 10.10.10.1:9100
-          - 10.10.10.2:9100
+          - 10.10.20.10:9100   # Wazuh/Monitoring server
+          - 10.10.20.11:9100   # ubuntu-server-01
+          - 10.10.20.12:9100   # ubuntu-server-02
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         regex: '([^:]+).*'
         replacement: '${1}'
+      - source_labels: [__address__]
+        regex: '10\.10\.20\.10:.*'
+        target_label: role
+        replacement: siem
 
   # blackbox exporter - icmp probes for uptime/sla tracking
   # this is what feeds the SLA breach alert rules
@@ -41,11 +45,11 @@ scrape_configs:
         - icmp
     static_configs:
       - targets:
-          - 10.10.10.1
-          - 10.10.10.2
-          - 10.10.20.1
-          - 10.10.20.10
-          - 10.10.30.1
+          - 10.10.99.1    # SW-DIST
+          - 10.10.99.11   # SW-ACC-1
+          - 10.10.99.12   # SW-ACC-2
+          - 10.0.1.1      # R1-CORE
+          - 10.10.20.10   # Wazuh/Monitoring
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -53,14 +57,6 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
-
-  # wazuh agent metrics - scraped from node exporter on siem host
-  - job_name: wazuh
-    static_configs:
-      - targets:
-          - 10.10.20.10:9100
-    labels:
-      role: siem
 
   # snmp exporter - network device metrics via snmp
   # requires SNMPv3 user configured on cisco switches (see enterprise-network-segmentation configs)
@@ -71,10 +67,10 @@ scrape_configs:
         - if_mib
     static_configs:
       - targets:
-          - 10.10.10.1
-          - 10.10.10.2
-          - 10.10.20.1
-          - 10.10.30.1
+          - 10.10.99.1    # SW-DIST
+          - 10.10.99.11   # SW-ACC-1
+          - 10.10.99.12   # SW-ACC-2
+          - 10.0.1.1      # R1-CORE
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

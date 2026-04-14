@@ -4,6 +4,27 @@ Full observability stack for network infrastructure. Prometheus scrapes metrics 
 
 I built this after realizing that basic ping monitoring wasn't enough for incident response prep. Having MTTD and MTTR data on a dashboard makes a huge difference when you're trying to demonstrate SLA adherence or write a post-incident report.
 
+## Project Series
+
+This is **Project 4 of 5** in a production enterprise environment build. Each project builds on the previous one.
+
+| # | Project | What It Adds |
+|---|---------|-------------|
+| 1 | [Enterprise Network Segmentation](https://github.com/calvinanglo/enterprise-network-segmentation) | VLANs, OSPF, ACLs, pfSense firewall |
+| 2 | [Wazuh SIEM Deployment](https://github.com/calvinanglo/wazuh-siem-deployment) | Centralized log collection, threat detection, incident response |
+| 3 | [Compliance Hardening Pipeline](https://github.com/calvinanglo/compliance-hardening-pipeline) | Automated CIS benchmarks across all devices |
+| 4 | [Network Monitoring Stack](https://github.com/calvinanglo/network-monitoring-stack) | Prometheus, Grafana, SNMP monitoring, SLA dashboards |
+| 5 | [DR & BC Simulation](https://github.com/calvinanglo/dr-bc-simulation) | Disaster recovery testing, backup validation, RTO/RPO measurement |
+
+### Prerequisites
+- **Complete [Project 1](https://github.com/calvinanglo/enterprise-network-segmentation) first** — SNMPv3 must be configured on all Cisco devices
+- **Complete [Project 2](https://github.com/calvinanglo/wazuh-siem-deployment) first** — the monitoring server sits on VLAN 20 alongside Wazuh
+- Docker and Docker Compose installed on the monitoring host (10.10.20.10)
+- SNMPv3 credentials matching those in Project 1 configs (user: wazuh-monitor, SHA auth, AES priv)
+
+### What's Next
+After completing this project, continue to [Project 5: DR & BC Simulation](https://github.com/calvinanglo/dr-bc-simulation) to test disaster recovery across the entire environment. The monitoring stack provides the alerting (DeviceUnreachable) that triggers the DR failover process, and the SLA dashboard tracks RTO/RPO metrics after recovery.
+
 ## stack overview
 
 | service | role |
@@ -19,19 +40,27 @@ I built this after realizing that basic ping monitoring wasn't enough for incide
 
 ```
 network-monitoring-stack/
-  docker-compose.monitoring.yml   # full 6-service stack definition
+  .env.example                        # environment variables template
+  docker-compose.monitoring.yml       # full 6-service stack definition
   prometheus/
-    prometheus.yml                # scrape configs for all targets
-    alert-rules.yml               # alerting rules with severity tiers
+    prometheus.yml                    # scrape configs for all targets
+    alert-rules.yml                   # alerting rules with severity tiers
   alertmanager/
-    alertmanager.yml              # routing tree and receiver configs
+    alertmanager.yml                  # routing tree and receiver configs
+  blackbox/
+    blackbox.yml                      # ICMP, TCP, HTTP probe configs
   grafana/
     dashboards/
-      sla-dashboard.json          # main SLA dashboard
+      dashboard.yml                   # dashboard provisioning config
+      sla-dashboard.json              # main SLA dashboard with 7 panels
+    datasources/
+      prometheus.yml                  # auto-provisions Prometheus datasource
+  snmp/
+    snmp.yml                          # SNMPv3 auth config for SNMP Exporter
   cisco/
-    snmp-config.txt               # SNMPv3 config for Cisco IOS
+    snmp-config.txt                   # SNMPv3 config for Cisco IOS devices
   docs/
-    itil-sla-targets.md           # SLA definitions and ITIL event management
+    itil-sla-targets.md               # SLA definitions and ITIL event management
 ```
 
 ## quick start
